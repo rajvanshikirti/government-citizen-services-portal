@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CITIZEN
+  OFFICER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  aadhaarNumber String?        @unique
+  address       String?
+  city          String?
+  state         String?
+  pincode       String?
+  role          Role           @default(CITIZEN)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  applications  Application[]
+  notifications Notification[]
+  documents     Document[]
+
+  @@map("users")
+}
+
+model GovernmentService {
+  id               String        @id @default(uuid())
+  name             String
+  slug             String        @unique
+  description      String
+  category         String
+  processingDays   Int           @default(7)
+  fee              Float         @default(0)
+  requiredDocs     String[]
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  applications     Application[]
+
+  @@map("government_services")
+}
+
+model Application {
+  id              String            @id @default(uuid())
+  applicationNo   String            @unique
+  userId          String
+  serviceId       String
+  status          ApplicationStatus @default(DRAFT)
+  formData        Json
+  remarks         String?
+  officerId       String?
+  certificateNo   String?           @unique
+  qrCode          String?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service         GovernmentService @relation(fields: [serviceId], references: [id])
+  documents       Document[]
+  statusHistory   StatusHistory[]
+
+  @@index([userId])
+  @@index([serviceId])
+  @@index([status])
+  @@map("applications")
+}
+
+model Document {
+  id            String       @id @default(uuid())
+  applicationId String?
+  userId        String
+  fileName      String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  filePath      String
+  createdAt     DateTime     @default(now())
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model StatusHistory {
+  id            String            @id @default(uuid())
+  applicationId String
+  status        ApplicationStatus
+  remarks       String?
+  changedBy     String
+  createdAt     DateTime          @default(now())
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("status_history")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
