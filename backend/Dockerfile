@@ -1,42 +1,27 @@
 # --- Stage 1: Build ---
-FROM node:20-alpine AS builder
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-WORKDIR /app
+# Copy project file and restore dependencies
+COPY backend-csharp/GovernmentCitizenServices.Api.csproj ./
+RUN dotnet restore "GovernmentCitizenServices.Api.csproj"
 
-# Copy root package files for workspace resolution
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-
-# Install dependencies
-RUN npm ci --workspace=backend
-
-# Copy backend source files
-COPY backend/ ./backend/
-
-# Generate Prisma client & compile TypeScript
-WORKDIR /app/backend
-RUN npx prisma generate
-RUN npm run build
+# Copy full source and publish
+COPY backend-csharp/ ./
+RUN dotnet publish "GovernmentCitizenServices.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # --- Stage 2: Production Runner ---
-FROM node:20-alpine AS runner
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
 
-WORKDIR /app/backend
+ENV ASPNETCORE_HTTP_PORTS=5000
+ENV ASPNETCORE_ENVIRONMENT=Production
 
-ENV NODE_ENV=production
-ENV PORT=5000
+COPY --from=build /app/publish .
 
-# Copy built dist & dependencies
-COPY --from=builder /app/package*.json /app/
-COPY --from=builder /app/backend/package*.json ./
-COPY --from=builder /app/backend/dist ./dist
-COPY --from=builder /app/backend/prisma ./prisma
-COPY --from=builder /app/node_modules /app/node_modules
-
-# Create upload directory
-RUN mkdir -p /app/backend/uploads
+# Create Uploads Directory
+RUN mkdir -p /app/uploads
 
 EXPOSE 5000
 
-# Run migrations and start production API
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+ENTRYPOINT ["dotnet", "GovernmentCitizenServices.Api.dll"]
