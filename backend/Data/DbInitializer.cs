@@ -99,48 +99,60 @@ namespace GovernmentCitizenServices.Api.Data
                 await context.SaveChangesAsync();
             }
 
-            if (!await context.Users.AnyAsync(u => u.Role == Role.ADMIN))
+            // Seed / Upsert Admin User
+            var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@govportal.gov");
+            if (admin == null)
             {
-                var adminUser = new User
+                admin = new User
                 {
                     Email = "admin@govportal.gov",
-                    Password = BCrypt.Net.BCrypt.HashPassword("Password@123"),
                     FirstName = "System",
                     LastName = "Admin",
                     Phone = "9999999999",
-                    Role = Role.ADMIN
+                    Role = Role.ADMIN,
+                    IsActive = true
                 };
-                await context.Users.AddAsync(adminUser);
+                await context.Users.AddAsync(admin);
             }
+            admin.Password = BCrypt.Net.BCrypt.HashPassword("Password@123");
+            admin.IsActive = true;
 
-            if (!await context.Users.AnyAsync(u => u.Role == Role.OFFICER))
+            // Seed / Upsert Officer User
+            var officer = await context.Users.FirstOrDefaultAsync(u => u.Email == "officer@govportal.gov");
+            if (officer == null)
             {
-                var officerUser = new User
+                officer = new User
                 {
                     Email = "officer@govportal.gov",
-                    Password = BCrypt.Net.BCrypt.HashPassword("Password@123"),
                     FirstName = "Verification",
                     LastName = "Officer",
                     Phone = "9876543210",
-                    Role = Role.OFFICER
+                    Role = Role.OFFICER,
+                    IsActive = true
                 };
-                await context.Users.AddAsync(officerUser);
+                await context.Users.AddAsync(officer);
             }
+            officer.Password = BCrypt.Net.BCrypt.HashPassword("Password@123");
+            officer.IsActive = true;
 
-            if (!await context.Users.AnyAsync(u => u.Email == "citizen@example.com"))
+            // Seed / Upsert Citizen User
+            var citizen = await context.Users.FirstOrDefaultAsync(u => u.Email == "citizen@example.com");
+            if (citizen == null)
             {
-                var citizenUser = new User
+                citizen = new User
                 {
                     Email = "citizen@example.com",
-                    Password = BCrypt.Net.BCrypt.HashPassword("Password@123"),
                     FirstName = "Rahul",
                     LastName = "Sharma",
                     Phone = "9812345678",
                     AadhaarNumber = "123456789012",
-                    Role = Role.CITIZEN
+                    Role = Role.CITIZEN,
+                    IsActive = true
                 };
-                await context.Users.AddAsync(citizenUser);
+                await context.Users.AddAsync(citizen);
             }
+            citizen.Password = BCrypt.Net.BCrypt.HashPassword("Password@123");
+            citizen.IsActive = true;
 
             await context.SaveChangesAsync();
         }
