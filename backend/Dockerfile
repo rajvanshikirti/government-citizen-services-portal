@@ -3,11 +3,11 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project file and restore dependencies
-COPY backend-csharp/GovernmentCitizenServices.Api.csproj ./
+COPY GovernmentCitizenServices.Api.csproj ./
 RUN dotnet restore "GovernmentCitizenServices.Api.csproj"
 
 # Copy full source and publish
-COPY backend-csharp/ ./
+COPY . ./
 RUN dotnet publish "GovernmentCitizenServices.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # --- Stage 2: Production Runner ---
