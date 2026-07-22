@@ -9,10 +9,32 @@ using GovernmentCitizenServices.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Entity Framework Core with Npgsql (PostgreSQL)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration["DATABASE_URL"]
-    ?? "Host=localhost;Port=5432;Database=gcsp_db;Username=postgres;Password=root";
+// Helper to convert postgresql:// URI format into Npgsql connection string
+string ParseConnectionUrl(string? url)
+{
+    if (string.IsNullOrWhiteSpace(url)) return "Host=localhost;Port=5432;Database=gcsp_db;Username=postgres;Password=root";
+    if (!url.StartsWith("postgres://") && !url.StartsWith("postgresql://")) return url;
+
+    try
+    {
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':');
+        var user = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+
+        return $"Host={host};Port={port};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+    }
+    catch
+    {
+        return url;
+    }
+}
+
+var rawDbUrl = builder.Configuration["DATABASE_URL"] ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = ParseConnectionUrl(rawDbUrl);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -96,8 +118,18 @@ var app = builder.Build();
 // 7. Initialize & Seed Database
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DbInitializer.InitializeAsync(dbContext);
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("⏳ Applying PostgreSQL Database Migrations & Initializing Seed Data...");
+        await DbInitializer.InitializeAsync(dbContext);
+        logger.LogInformation("✅ Database Migrations & Seeding Completed Successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "❌ Database Migration/Connection Failed. Ensure DATABASE_URL is correct.");
+    }
 }
 
 // 8. Configure HTTP Request Pipeline
