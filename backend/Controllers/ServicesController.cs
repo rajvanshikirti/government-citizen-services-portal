@@ -8,6 +8,7 @@ namespace GovernmentCitizenServices.Api.Controllers
 {
     [ApiController]
     [Route("api/services")]
+    [Route("services")]
     public class ServicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

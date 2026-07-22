@@ -28,6 +28,7 @@ namespace GovernmentCitizenServices.Api.Controllers
         }
 
         [HttpGet("api/dashboard/stats")]
+        [HttpGet("dashboard/stats")]
         public async Task<IActionResult> GetDashboardStats()
         {
             var (userId, role) = GetCurrentUserInfo();
@@ -54,6 +55,7 @@ namespace GovernmentCitizenServices.Api.Controllers
         }
 
         [HttpGet("api/reports/by-service")]
+        [HttpGet("reports/by-service")]
         [Authorize(Roles = "OFFICER,ADMIN")]
         public async Task<IActionResult> GetApplicationsByService()
         {
@@ -70,6 +72,7 @@ namespace GovernmentCitizenServices.Api.Controllers
         }
 
         [HttpGet("api/reports/by-status")]
+        [HttpGet("reports/by-status")]
         [Authorize(Roles = "OFFICER,ADMIN")]
         public async Task<IActionResult> GetApplicationsByStatus()
         {
@@ -86,6 +89,7 @@ namespace GovernmentCitizenServices.Api.Controllers
         }
 
         [HttpGet("api/reports/monthly-trend")]
+        [HttpGet("reports/monthly-trend")]
         [Authorize(Roles = "OFFICER,ADMIN")]
         public async Task<IActionResult> GetMonthlyTrend([FromQuery] int months = 6)
         {
@@ -105,6 +109,7 @@ namespace GovernmentCitizenServices.Api.Controllers
         }
 
         [HttpGet("api/notifications")]
+        [HttpGet("notifications")]
         public async Task<IActionResult> ListNotifications([FromQuery] int page = 1, [FromQuery] int limit = 20, [FromQuery] bool unreadOnly = false)
         {
             var (userId, _) = GetCurrentUserInfo();

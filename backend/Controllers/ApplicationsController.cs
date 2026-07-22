@@ -9,6 +9,7 @@ namespace GovernmentCitizenServices.Api.Controllers
 {
     [ApiController]
     [Route("api/applications")]
+    [Route("applications")]
     public class ApplicationsController : ControllerBase
     {
         private readonly ApplicationService _applicationService;

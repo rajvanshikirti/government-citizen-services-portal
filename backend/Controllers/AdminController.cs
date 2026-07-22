@@ -10,6 +10,7 @@ namespace GovernmentCitizenServices.Api.Controllers
 {
     [ApiController]
     [Route("api/admin")]
+    [Route("admin")]
     [Authorize(Roles = "ADMIN")]
     public class AdminController : ControllerBase
     {

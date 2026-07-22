@@ -10,6 +10,7 @@ namespace GovernmentCitizenServices.Api.Controllers
 {
     [ApiController]
     [Route("api/documents")]
+    [Route("documents")]
     [Authorize]
     public class DocumentsController : ControllerBase
     {
