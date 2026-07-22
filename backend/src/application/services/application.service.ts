@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { ApplicationStatus, Prisma, Role } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma';
 import { AppError, ForbiddenError, NotFoundError } from '../../domain/entities/errors';
@@ -227,6 +229,46 @@ export class ApplicationService {
       serviceName: application.service.name,
       citizenName: `${application.user.firstName} ${application.user.lastName}`,
       issuedDate: application.completedAt,
+    };
+  }
+
+  async getCertificateForDownload(userId: string, role: Role, applicationId: string) {
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        service: true,
+        user: true,
+      },
+    });
+
+    if (!application) throw new NotFoundError('Application not found');
+
+    if (role === Role.CITIZEN && application.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this certificate');
+    }
+
+    if (!application.certificateNo || (application.status !== ApplicationStatus.APPROVED && application.status !== ApplicationStatus.COMPLETED)) {
+      throw new AppError(400, 'Certificate has not been generated for this application yet');
+    }
+
+    const fileName = `certificate-${application.certificateNo}.pdf`;
+    const filePath = path.join(env.UPLOAD_DIR, fileName);
+
+    if (!fs.existsSync(filePath)) {
+      const verificationUrl = `${env.CORS_ORIGIN}/verify/${application.certificateNo}`;
+      await certificateService.generateCertificate({
+        certificateNo: application.certificateNo,
+        applicationNo: application.applicationNo,
+        serviceName: application.service.name,
+        citizenName: `${application.user.firstName} ${application.user.lastName}`,
+        issuedDate: application.completedAt || application.updatedAt,
+        verificationUrl,
+      });
+    }
+
+    return {
+      filePath,
+      certificateNo: application.certificateNo,
     };
   }
 

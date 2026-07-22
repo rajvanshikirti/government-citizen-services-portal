@@ -6,6 +6,7 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge, LoadingSpinner, EmptyState } from '../components/common/Badge';
 import { GovernmentTable } from '../components/common/Table';
+import { DocumentReviewList } from '../components/common/DocumentReviewList';
 import { applicationsApi } from '../services/endpoints';
 import type { Application, ApplicationStatus } from '../types';
 import { formatDate } from '../utils/helpers';
@@ -15,6 +16,7 @@ export default function OfficerPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>('UNDER_REVIEW');
   const [remarks, setRemarks] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -27,6 +29,33 @@ export default function OfficerPage() {
   };
 
   useEffect(() => { fetchApplications(); }, [search]);
+
+  const openProcessModal = async (app: Application) => {
+    setSelectedApp(app);
+    setNewStatus('UNDER_REVIEW');
+    setRemarks('');
+    setLoadingDetails(true);
+    try {
+      const res = await applicationsApi.getById(app.id);
+      setSelectedApp(res.data.data);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleDocumentVerified = (documentId: string) => {
+    setSelectedApp((prev) => {
+      if (!prev?.documents) return prev;
+      return {
+        ...prev,
+        documents: prev.documents.map((doc) =>
+          doc.id === documentId
+            ? { ...doc, isVerified: true, verifiedAt: new Date().toISOString() }
+            : doc
+        ),
+      };
+    });
+  };
 
   const handleUpdateStatus = async () => {
     if (!selectedApp) return;
@@ -73,7 +102,7 @@ export default function OfficerPage() {
                   <div className="flex gap-3">
                     <Link to={`/applications/${app.id}`} className="text-sm font-semibold text-gov-blue hover:underline">View</Link>
                     {['SUBMITTED', 'UNDER_REVIEW'].includes(app.status) && (
-                      <button onClick={() => { setSelectedApp(app); setNewStatus('UNDER_REVIEW'); setRemarks(''); }} className="text-sm font-semibold text-gov-green hover:underline">
+                      <button onClick={() => openProcessModal(app)} className="text-sm font-semibold text-gov-green hover:underline">
                         Process
                       </button>
                     )}
@@ -85,10 +114,29 @@ export default function OfficerPage() {
         )}
       </div>
 
-      <Modal isOpen={!!selectedApp} onClose={() => setSelectedApp(null)} title="Update Application Status">
+      <Modal isOpen={!!selectedApp} onClose={() => setSelectedApp(null)} title="Review Application">
         {selectedApp && (
-          <div className="space-y-4">
-            <p className="text-sm text-gov-muted">Application: <strong className="text-gov-text">{selectedApp.applicationNo}</strong></p>
+          <div className="space-y-5">
+            <p className="text-sm text-gov-muted">
+              Application: <strong className="text-gov-text">{selectedApp.applicationNo}</strong>
+            </p>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gov-text mb-2">Document Verification</h3>
+              <p className="text-xs text-gov-muted mb-3">
+                Open each document to review it, then click Verify to mark it as checked.
+              </p>
+              {loadingDetails ? (
+                <LoadingSpinner />
+              ) : (
+                <DocumentReviewList
+                  documents={selectedApp.documents || []}
+                  canVerify
+                  onVerified={handleDocumentVerified}
+                />
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gov-text mb-1.5">New Status</label>
               <select value={newStatus} onChange={(e) => setNewStatus(e.target.value as ApplicationStatus)} className="gov-input">

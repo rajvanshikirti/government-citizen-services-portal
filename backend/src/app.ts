@@ -16,17 +16,19 @@ app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/api/health', (_req, res) => {
+  res.json({ success: true, message: 'Government Citizen Services Portal API is running' });
+});
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: env.NODE_ENV === 'production' ? 500 : 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later' },
 });
 
 app.use('/api/', limiter);
-
-app.get('/api/health', (_req, res) => {
-  res.json({ success: true, message: 'Government Citizen Services Portal API is running' });
-});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);

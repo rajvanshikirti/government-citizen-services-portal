@@ -1,32 +1,80 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Download, CheckCircle, FileText, ExternalLink } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusBadge, LoadingSpinner } from '../components/common/Badge';
+import { Button } from '../components/common/Button';
 import { ApplicationTimeline } from '../components/common/Timeline';
+import { DocumentReviewList } from '../components/common/DocumentReviewList';
 import { applicationsApi } from '../services/endpoints';
+import { useAuth } from '../contexts/AuthContext';
 import type { Application } from '../types';
 import { formatDate } from '../utils/helpers';
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  const canVerifyDocuments = user?.role === 'OFFICER' || user?.role === 'ADMIN';
+
+  const loadApplication = () => {
+    if (!id) return;
+    setLoading(true);
+    applicationsApi.getById(id)
+      .then((res) => setApplication(res.data.data))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    if (id) {
-      applicationsApi.getById(id)
-        .then((res) => setApplication(res.data.data))
-        .finally(() => setLoading(false));
-    }
+    loadApplication();
   }, [id]);
+
+  const handleDocumentVerified = (documentId: string) => {
+    setApplication((prev) => {
+      if (!prev?.documents) return prev;
+      return {
+        ...prev,
+        documents: prev.documents.map((doc) =>
+          doc.id === documentId
+            ? { ...doc, isVerified: true, verifiedAt: new Date().toISOString() }
+            : doc
+        ),
+      };
+    });
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!id || downloading) return;
+    setDownloading(true);
+    try {
+      const response = await applicationsApi.downloadCertificate(id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Certificate-${application?.certificateNo || application?.applicationNo}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download certificate:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) return <LoadingSpinner size="lg" />;
   if (!application) return <p className="text-gov-error">Application not found</p>;
 
+  const isApproved = application.status === 'APPROVED' || application.status === 'COMPLETED';
+
   const progressPercent = {
-    DRAFT: 10, SUBMITTED: 25, UNDER_REVIEW: 50, APPROVED: 80, COMPLETED: 100, REJECTED: 100,
+    DRAFT: 10, SUBMITTED: 25, UNDER_REVIEW: 50, APPROVED: 100, COMPLETED: 100, REJECTED: 100,
   }[application.status] || 0;
 
   return (
@@ -41,7 +89,50 @@ export default function ApplicationDetailPage() {
         ]}
       />
 
-      {/* Progress bar */}
+      {/* Official Certificate Download Banner */}
+      {isApproved && (
+        <div className="mb-6 p-5 rounded-lg border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-600 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-emerald-500 text-white rounded-full flex-shrink-0 mt-0.5">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-emerald-900 dark:text-emerald-200">
+                Official Certificate Issued!
+              </h3>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
+                Certificate No: <span className="font-mono font-semibold">{application.certificateNo}</span>
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                Your application has been approved by the Government Officer. You can download your official PDF certificate below.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
+            <Button
+              onClick={handleDownloadCertificate}
+              disabled={downloading}
+              variant="primary"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow"
+            >
+              <Download className="w-4 h-4" />
+              {downloading ? 'Downloading PDF...' : 'Download Certificate (PDF)'}
+            </Button>
+            {application.certificateNo && (
+              <a
+                href={`/verify/${application.certificateNo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold text-emerald-800 dark:text-emerald-200 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 rounded-md transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Verify Certificate
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="gov-card p-5 mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-gov-text dark:text-white">Application Progress</span>
@@ -49,7 +140,7 @@ export default function ApplicationDetailPage() {
         </div>
         <div className="w-full h-2 bg-gov-border dark:bg-slate-700 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${application.status === 'REJECTED' ? 'bg-gov-error' : 'bg-gov-blue'}`}
+            className={`h-full rounded-full transition-all duration-500 ${application.status === 'REJECTED' ? 'bg-gov-error' : 'bg-emerald-500'}`}
             style={{ width: `${progressPercent}%` }}
             role="progressbar"
             aria-valuenow={progressPercent}
@@ -100,27 +191,31 @@ export default function ApplicationDetailPage() {
           {application.qrCode && (
             <Card title="Certificate QR Code">
               <div className="flex flex-col items-center">
-                <img src={application.qrCode} alt="Certificate verification QR code" className="w-36 h-36 border border-gov-border rounded-md p-2" />
-                <p className="text-xs text-gov-muted mt-3 text-center">Scan to verify certificate authenticity</p>
+                <img src={application.qrCode} alt="Certificate verification QR code" className="w-36 h-36 border border-gov-border rounded-md p-2 bg-white" />
+                <p className="text-xs text-gov-muted mt-3 text-center">Scan to verify certificate authenticity online</p>
+                <Button
+                  onClick={handleDownloadCertificate}
+                  disabled={downloading}
+                  size="sm"
+                  className="mt-4 w-full flex items-center justify-center gap-1.5"
+                >
+                  <FileText className="w-4 h-4" />
+                  {downloading ? 'Downloading...' : 'Download PDF'}
+                </Button>
               </div>
             </Card>
           )}
 
-          {application.documents && application.documents.length > 0 && (
-            <Card title="Uploaded Documents">
-              <ul className="space-y-2">
-                {application.documents.map((doc) => (
-                  <li key={doc.id} className="flex items-center gap-3 p-3 bg-gov-bg dark:bg-slate-800 rounded-md text-sm">
-                    <FileText className="w-4 h-4 text-gov-blue flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{doc.originalName}</p>
-                      <p className="text-xs text-gov-muted">{(doc.fileSize / 1024).toFixed(1)} KB</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+          <Card
+            title="Uploaded Documents"
+            subtitle={canVerifyDocuments ? 'Review and verify citizen documents' : undefined}
+          >
+            <DocumentReviewList
+              documents={application.documents || []}
+              canVerify={canVerifyDocuments}
+              onVerified={handleDocumentVerified}
+            />
+          </Card>
         </div>
       </div>
     </div>

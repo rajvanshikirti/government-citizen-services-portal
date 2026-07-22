@@ -35,5 +35,7 @@ router.get('/admin/users', authorize(Role.ADMIN), miscController.listUsers);
 router.patch('/admin/users/:id/toggle-status', authorize(Role.ADMIN), miscController.toggleUserStatus);
 
 router.post('/documents/upload', upload.single('file'), miscController.uploadDocument);
+router.get('/documents/:id/view', miscController.viewDocument);
+router.patch('/documents/:id/verify', authorize(Role.OFFICER, Role.ADMIN), miscController.verifyDocument);
 
 export default router;

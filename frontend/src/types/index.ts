@@ -63,6 +63,9 @@ export interface Document {
   originalName: string;
   mimeType: string;
   fileSize: number;
+  isVerified?: boolean;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
   createdAt: string;
 }
 

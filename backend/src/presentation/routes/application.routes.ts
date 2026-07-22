@@ -14,6 +14,7 @@ router.use(authenticate);
 router.get('/', applicationController.listApplications);
 router.post('/', authorize(Role.CITIZEN), validate(createApplicationSchema), applicationController.createApplication);
 router.get('/:id', applicationController.getApplication);
+router.get('/:id/certificate', applicationController.downloadCertificate);
 router.post('/:id/submit', authorize(Role.CITIZEN), applicationController.submitApplication);
 router.patch(
   '/:id/status',

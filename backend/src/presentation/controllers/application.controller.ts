@@ -1,3 +1,4 @@
+import path from 'path';
 import { Request, Response } from 'express';
 import { ApplicationStatus } from '@prisma/client';
 import { applicationService } from '../../application/services/application.service';
@@ -59,3 +60,16 @@ export const verifyCertificate = asyncHandler(async (req: Request, res: Response
   const result = await applicationService.verifyCertificate(paramCertificateNo(req));
   res.json({ success: true, data: result });
 });
+
+export const downloadCertificate = asyncHandler(async (req: Request, res: Response) => {
+  const result = await applicationService.getCertificateForDownload(
+    req.user!.userId,
+    req.user!.role,
+    paramId(req)
+  );
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="Certificate-${result.certificateNo}.pdf"`);
+  res.sendFile(path.resolve(result.filePath));
+});
+

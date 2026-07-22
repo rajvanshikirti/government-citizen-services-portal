@@ -10,6 +10,7 @@ import type {
   DashboardStats,
   ApplicationStatus,
   Role,
+  Document,
 } from '../types';
 
 export const authApi = {
@@ -64,6 +65,9 @@ export const applicationsApi = {
 
   updateStatus: (id: string, data: { status: ApplicationStatus; remarks?: string }) =>
     api.patch<ApiResponse<Application>>(`/applications/${id}/status`, data),
+
+  downloadCertificate: (id: string) =>
+    api.get<Blob>(`/applications/${id}/certificate`, { responseType: 'blob' }),
 
   verifyCertificate: (certificateNo: string) =>
     api.get<ApiResponse<{
@@ -122,4 +126,10 @@ export const documentsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  view: (id: string) =>
+    api.get<Blob>(`/documents/${id}/view`, { responseType: 'blob' }),
+
+  verify: (id: string) =>
+    api.patch<ApiResponse<Document>>(`/documents/${id}/verify`),
 };

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import path from 'path';
 import { Role } from '@prisma/client';
 import {
   notificationService,
@@ -82,4 +83,27 @@ export const uploadDocument = asyncHandler(async (req: Request, res: Response) =
     req.body.applicationId
   );
   res.status(201).json({ success: true, data: document });
+});
+
+export const viewDocument = asyncHandler(async (req: Request, res: Response) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const document = await documentService.getDocumentForAccess(
+    req.user!.userId,
+    req.user!.role,
+    id
+  );
+
+  res.setHeader('Content-Type', document.mimeType);
+  res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+  res.sendFile(path.resolve(document.filePath));
+});
+
+export const verifyDocument = asyncHandler(async (req: Request, res: Response) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const document = await documentService.verifyDocument(
+    req.user!.userId,
+    req.user!.role,
+    id
+  );
+  res.json({ success: true, data: document, message: 'Document verified successfully' });
 });

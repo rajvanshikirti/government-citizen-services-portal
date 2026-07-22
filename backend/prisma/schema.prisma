@@ -105,6 +105,9 @@ model Document {
   mimeType      String
   fileSize      Int
   filePath      String
+  isVerified    Boolean      @default(false)
+  verifiedBy    String?
+  verifiedAt    DateTime?
   createdAt     DateTime     @default(now())
   application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
