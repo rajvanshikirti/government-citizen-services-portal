@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,18 +59,6 @@ export default function LoginPage() {
             Don&apos;t have an account?{' '}
             <Link to="/register" className="text-gov-blue font-semibold hover:underline">{t('register')}</Link>
           </p>
-
-          <div className="mt-6 p-4 bg-gov-bg dark:bg-slate-800 rounded-md border border-gov-border dark:border-slate-700">
-            <p className="text-xs font-semibold text-gov-muted uppercase tracking-wide mb-2 flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" /> Demo Accounts
-            </p>
-            <div className="text-xs text-gov-muted space-y-1 font-mono">
-              <p>Citizen: citizen@example.com</p>
-              <p>Officer: officer@govportal.gov</p>
-              <p>Admin: admin@govportal.gov</p>
-              <p className="text-gov-text font-sans font-semibold mt-2">Password: Password@123</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

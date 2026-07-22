@@ -79,13 +79,17 @@ const services = [
 ];
 
 async function main() {
-  const passwordHash = await bcrypt.hash('Password@123', 12);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@govportal.gov';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Password@123';
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
 
+  // Seed Initial Admin
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@govportal.gov' },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: 'admin@govportal.gov',
+      email: adminEmail,
       password: passwordHash,
       firstName: 'System',
       lastName: 'Admin',
@@ -94,37 +98,43 @@ async function main() {
     },
   });
 
-  const officer = await prisma.user.upsert({
-    where: { email: 'officer@govportal.gov' },
-    update: {},
-    create: {
-      email: 'officer@govportal.gov',
-      password: passwordHash,
-      firstName: 'Rajesh',
-      lastName: 'Kumar',
-      phone: '8888888888',
-      role: 'OFFICER',
-    },
-  });
+  // Seed Demo Officer and Demo Citizen only in development mode
+  if (!isProduction) {
+    const demoPasswordHash = await bcrypt.hash('Password@123', 12);
 
-  const citizen = await prisma.user.upsert({
-    where: { email: 'citizen@example.com' },
-    update: {},
-    create: {
-      email: 'citizen@example.com',
-      password: passwordHash,
-      firstName: 'Amit',
-      lastName: 'Sharma',
-      phone: '7777777777',
-      aadhaarNumber: '234567890124',
-      address: '123 MG Road',
-      city: 'New Delhi',
-      state: 'Delhi',
-      pincode: '110001',
-      role: 'CITIZEN',
-    },
-  });
+    await prisma.user.upsert({
+      where: { email: 'officer@govportal.gov' },
+      update: {},
+      create: {
+        email: 'officer@govportal.gov',
+        password: demoPasswordHash,
+        firstName: 'Rajesh',
+        lastName: 'Kumar',
+        phone: '8888888888',
+        role: 'OFFICER',
+      },
+    });
 
+    await prisma.user.upsert({
+      where: { email: 'citizen@example.com' },
+      update: {},
+      create: {
+        email: 'citizen@example.com',
+        password: demoPasswordHash,
+        firstName: 'Amit',
+        lastName: 'Sharma',
+        phone: '7777777777',
+        aadhaarNumber: '234567890124',
+        address: '123 MG Road',
+        city: 'New Delhi',
+        state: 'Delhi',
+        pincode: '110001',
+        role: 'CITIZEN',
+      },
+    });
+  }
+
+  // Seed Government Service Catalog
   for (const service of services) {
     await prisma.governmentService.upsert({
       where: { slug: service.slug },
@@ -133,7 +143,7 @@ async function main() {
     });
   }
 
-  console.log('Seed completed:', { admin: admin.email, officer: officer.email, citizen: citizen.email });
+  console.log(`Seed completed successfully in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode. Admin: ${admin.email}`);
 }
 
 main()
