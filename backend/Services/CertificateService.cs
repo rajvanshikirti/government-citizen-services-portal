@@ -70,11 +70,7 @@ namespace GovernmentCitizenServices.Api.Services
                         col.Item().Text($"Issued To: {citizenName}");
                         col.Item().Text($"Date of Issue: {issuedDate:dd/MM/yyyy}");
 
-                        col.Item().PaddingTop(20).Text(text =>
-                        {
-                            text.Span("This is to certify that the above-mentioned application has been duly processed and approved by the competent authority.");
-                            text.Justify();
-                        });
+                        col.Item().PaddingTop(20).Text("This is to certify that the above-mentioned application has been duly processed and approved by the competent authority.");
 
                         col.Item().PaddingTop(30).AlignRight().Width(120).Column(qrCol =>
                         {
