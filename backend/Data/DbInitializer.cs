@@ -111,8 +111,38 @@ namespace GovernmentCitizenServices.Api.Data
                     Role = Role.ADMIN
                 };
                 await context.Users.AddAsync(adminUser);
-                await context.SaveChangesAsync();
             }
+
+            if (!await context.Users.AnyAsync(u => u.Role == Role.OFFICER))
+            {
+                var officerUser = new User
+                {
+                    Email = "officer@govportal.gov",
+                    Password = BCrypt.Net.BCrypt.HashPassword("Password@123"),
+                    FirstName = "Verification",
+                    LastName = "Officer",
+                    Phone = "9876543210",
+                    Role = Role.OFFICER
+                };
+                await context.Users.AddAsync(officerUser);
+            }
+
+            if (!await context.Users.AnyAsync(u => u.Email == "citizen@example.com"))
+            {
+                var citizenUser = new User
+                {
+                    Email = "citizen@example.com",
+                    Password = BCrypt.Net.BCrypt.HashPassword("Password@123"),
+                    FirstName = "Rahul",
+                    LastName = "Sharma",
+                    Phone = "9812345678",
+                    AadhaarNumber = "123456789012",
+                    Role = Role.CITIZEN
+                };
+                await context.Users.AddAsync(citizenUser);
+            }
+
+            await context.SaveChangesAsync();
         }
     }
 }
