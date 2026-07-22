@@ -10,4 +10,8 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 .vscode/
 .idea/
+.vs/
+bin/
+obj/
+backend-csharp/
 *.tsbuildinfo
